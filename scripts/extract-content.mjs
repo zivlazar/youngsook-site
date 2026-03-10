@@ -1,7 +1,6 @@
 // Run with: node --input-type=module scripts/extract-content.mjs
 // Requires tsx to handle the TS import
 
-import { createRequire } from 'module'
 import { writeFileSync } from 'fs'
 import { pathToFileURL } from 'url'
 
