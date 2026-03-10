@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { works } from '@/lib/data'
 
 export const metadata = {
@@ -7,25 +8,32 @@ export const metadata = {
 
 export default function Works() {
   return (
-    <div className="max-w-2xl mx-auto px-6 py-16">
-      <h1 className="text-center uppercase tracking-widest text-lg font-sans mb-12">
-        Recent Works
-      </h1>
-      <ul className="space-y-8">
-        {works.map((work) => (
-          <li key={work.slug}>
-            <Link
-              href={`/works/${work.slug}`}
-              className="font-sans uppercase tracking-wide text-sm hover:opacity-60 transition-opacity"
-            >
-              {work.title}
-            </Link>
-            <span className="block text-xs font-sans text-gray-400 mt-1">
-              Continue reading →
-            </span>
-          </li>
-        ))}
-      </ul>
+    <div>
+      {works.map((work) => (
+        <Link
+          key={work.slug}
+          href={`/works/${work.slug}`}
+          className="group block relative overflow-hidden"
+          style={{ height: '73vh' }}
+        >
+          {work.images[0] && (
+            <Image
+              src={work.images[0].src}
+              alt={work.images[0].alt}
+              fill
+              className="object-cover transition-all duration-[125ms] ease-out group-hover:scale-[1.02] group-hover:grayscale"
+              unoptimized
+            />
+          )}
+          <div className="absolute inset-0 flex items-end">
+            <div className="bg-black/25 w-full px-6 py-4">
+              <h2 className="text-white font-sans uppercase tracking-[0.0625em] text-[1.375em] font-normal leading-tight">
+                {work.title}
+              </h2>
+            </div>
+          </div>
+        </Link>
+      ))}
     </div>
   )
 }
