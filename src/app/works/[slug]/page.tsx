@@ -32,7 +32,7 @@ export default async function WorkDetail({ params }: { params: Promise<{ slug: s
         </div>
       )}
       <div className="max-w-2xl mx-auto px-6 py-12">
-        <h1 className="font-sans uppercase tracking-[0.0625em] text-[1.5em] min-[768px]:text-[2.25em] font-normal leading-tight mb-10">
+        <h1 className="font-sans uppercase tracking-[0.0625em] text-[1.5em] min-[768px]:text-[2.25em] font-normal leading-tight mb-10 text-center">
           {work.title}
         </h1>
         <div className="space-y-6 leading-relaxed [&_img]:w-full [&_img]:h-auto [&_img]:my-4 [&_span.image-big]:block">
