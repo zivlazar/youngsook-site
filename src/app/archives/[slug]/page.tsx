@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { archives } from '@/lib/data'
 import { notFound } from 'next/navigation'
 
@@ -17,14 +18,28 @@ export default async function ArchiveDetail({ params }: { params: Promise<{ slug
   if (!item) notFound()
 
   return (
-    <article className="max-w-2xl mx-auto px-6 py-16">
-      <h1 className="text-center uppercase tracking-widest text-lg font-sans mb-12">
-        {item.title}
-      </h1>
-      <div className="space-y-6 leading-relaxed [&_img]:w-full [&_img]:h-auto [&_img]:my-4">
-        {item.content.map((html, i) => (
-          <div key={i} dangerouslySetInnerHTML={{ __html: html }} />
-        ))}
+    <article>
+      {item.images[0] && (
+        <div className="relative overflow-hidden bg-black -mt-16" style={{ height: '100vh' }}>
+          <Image
+            src={item.images[0].src}
+            alt={item.images[0].alt}
+            fill
+            className="object-cover"
+            priority
+            unoptimized
+          />
+        </div>
+      )}
+      <div className="max-w-2xl mx-auto px-6 py-12">
+        <h1 className="font-sans uppercase tracking-[0.0625em] text-[1.5em] min-[768px]:text-[2.25em] font-normal leading-tight mb-10">
+          {item.title}
+        </h1>
+        <div className="space-y-6 leading-relaxed [&_img]:w-full [&_img]:h-auto [&_img]:my-4 [&_span.image-big]:block">
+          {item.content.map((html, i) => (
+            <div key={i} dangerouslySetInnerHTML={{ __html: html }} />
+          ))}
+        </div>
       </div>
     </article>
   )
