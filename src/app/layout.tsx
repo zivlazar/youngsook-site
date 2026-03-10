@@ -1,7 +1,19 @@
 import type { Metadata } from 'next'
+import { Montserrat, Playfair_Display } from 'next/font/google'
 import './globals.css'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
+
+const montserrat = Montserrat({
+  subsets: ['latin'],
+  variable: '--font-montserrat',
+})
+
+const playfair = Playfair_Display({
+  subsets: ['latin'],
+  style: ['normal', 'italic'],
+  variable: '--font-playfair',
+})
 
 export const metadata: Metadata = {
   title: 'Youngsook Choi – Artist & Researcher',
@@ -14,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${montserrat.variable} ${playfair.variable}`}>
       <body>
         <Header />
         <main className="pt-16">{children}</main>
