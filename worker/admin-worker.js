@@ -16,12 +16,15 @@ const ALLOWED_ORIGINS = [
 const CONTENT_PATH = 'src/lib/content.json'
 
 function corsHeaders(origin) {
-  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0]
-  return {
-    'Access-Control-Allow-Origin': allowed,
+  const headers = {
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Vary': 'Origin',
   }
+  if (ALLOWED_ORIGINS.includes(origin)) {
+    headers['Access-Control-Allow-Origin'] = origin
+  }
+  return headers
 }
 
 function json(data, status = 200, origin = '') {
@@ -38,11 +41,14 @@ async function signJWT(payload, secret) {
     'raw', encoder.encode(secret),
     { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
   )
-  const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).replace(/=/g, '')
-  const body = btoa(JSON.stringify(payload)).replace(/=/g, '')
+  const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
+  const body = btoa(JSON.stringify(payload))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
   const data = `${header}.${body}`
   const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(data))
-  const sigB64 = btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/=/g, '')
+  const sigB64 = btoa(String.fromCharCode(...new Uint8Array(sig)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
   return `${data}.${sigB64}`
 }
 
@@ -68,7 +74,8 @@ async function verifyJWT(token, secret) {
 
 async function requireAuth(request, env) {
   const auth = request.headers.get('Authorization') || ''
-  const token = auth.replace('Bearer ', '')
+  if (!auth.startsWith('Bearer ')) return null
+  const token = auth.slice(7)
   if (!token) return null
   return verifyJWT(token, env.JWT_SECRET)
 }
@@ -119,18 +126,26 @@ async function githubDelete(path, sha, message, env) {
     },
     body: JSON.stringify({ message, sha }),
   })
-  if (!res.ok) throw new Error(`GitHub DELETE failed: ${res.status}`)
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`GitHub DELETE failed: ${res.status} ${err}`)
+  }
   return res.json()
 }
 
 // Route handlers
 async function handleLogin(request, env, origin) {
-  const { email, password } = await request.json()
+  let email, password
+  try {
+    ;({ email, password } = await request.json())
+  } catch {
+    return json({ error: 'Invalid request body' }, 400, origin)
+  }
   if (email !== env.ADMIN_EMAIL || password !== env.ADMIN_PASSWORD) {
     return json({ error: 'Invalid credentials' }, 401, origin)
   }
   const token = await signJWT(
-    { sub: email, exp: Math.floor(Date.now() / 1000) + 86400 },
+    { sub: email, iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 86400 },
     env.JWT_SECRET
   )
   return json({ token }, 200, origin)
@@ -147,7 +162,12 @@ async function handleGetContent(request, env, origin) {
 async function handlePutContent(request, env, origin) {
   const payload = await requireAuth(request, env)
   if (!payload) return json({ error: 'Unauthorized' }, 401, origin)
-  const { content, sha, message } = await request.json()
+  let content, sha, message
+  try {
+    ;({ content, sha, message } = await request.json())
+  } catch {
+    return json({ error: 'Invalid request body' }, 400, origin)
+  }
   await githubPut(CONTENT_PATH, JSON.stringify(content, null, 2), sha, message || 'admin: update content', env)
   return json({ ok: true }, 200, origin)
 }
@@ -155,7 +175,16 @@ async function handlePutContent(request, env, origin) {
 async function handleUploadImage(request, env, origin) {
   const payload = await requireAuth(request, env)
   if (!payload) return json({ error: 'Unauthorized' }, 401, origin)
-  const { filename, base64, sha } = await request.json()
+  let filename, base64, sha
+  try {
+    ;({ filename, base64, sha } = await request.json())
+  } catch {
+    return json({ error: 'Invalid request body' }, 400, origin)
+  }
+  // validate filename — no path traversal
+  if (!filename || !/^[a-zA-Z0-9_\-\.]+$/.test(filename)) {
+    return json({ error: 'Invalid filename' }, 400, origin)
+  }
   const path = `public/images/${filename}`
   const body = { message: `admin: upload ${filename}`, content: base64 }
   if (sha) body.sha = sha
@@ -182,6 +211,10 @@ async function handleDeleteImage(request, env, origin) {
   if (!payload) return json({ error: 'Unauthorized' }, 401, origin)
   const url = new URL(request.url)
   const filename = url.pathname.split('/images/')[1]
+  // validate filename
+  if (!filename || !/^[a-zA-Z0-9_\-\.]+$/.test(filename)) {
+    return json({ error: 'Invalid filename' }, 400, origin)
+  }
   const path = `public/images/${filename}`
   try {
     const file = await githubGet(path, env)
