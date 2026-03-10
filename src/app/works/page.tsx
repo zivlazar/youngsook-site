@@ -8,13 +8,12 @@ export const metadata = {
 
 export default function Works() {
   return (
-    <div>
+    <div className="grid grid-cols-1 min-[568px]:grid-cols-2 min-[1024px]:grid-cols-3">
       {works.map((work) => (
         <Link
           key={work.slug}
           href={`/works/${work.slug}`}
-          className="group block relative overflow-hidden"
-          style={{ height: '73vh' }}
+          className="group relative overflow-hidden aspect-square bg-black"
         >
           {work.images[0] && (
             <Image
@@ -26,7 +25,7 @@ export default function Works() {
             />
           )}
           <div className="absolute inset-0 flex items-end">
-            <div className="bg-black/25 w-full px-6 py-4">
+            <div className="bg-black/25 w-full px-4 py-3">
               <h2 className="text-white font-sans uppercase tracking-[0.0625em] text-[1.375em] font-normal leading-tight">
                 {work.title}
               </h2>
