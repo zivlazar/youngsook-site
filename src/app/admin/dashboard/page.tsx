@@ -43,6 +43,26 @@ export default function Dashboard() {
     }
   }
 
+  async function movePage(type: 'works' | 'archives', slug: string, dir: -1 | 1) {
+    if (!content) return
+    const list = [...content[type]]
+    const idx = list.findIndex((e: WorkEntry) => e.slug === slug)
+    const newIdx = idx + dir
+    if (newIdx < 0 || newIdx >= list.length) return
+    ;[list[idx], list[newIdx]] = [list[newIdx], list[idx]]
+    const updated = { ...content, [type]: list }
+    try {
+      await putContent(updated, sha, `admin: reorder ${type}`)
+      setContent(updated)
+      const fresh = await getContent()
+      setSha(fresh.sha)
+      setPublished(true)
+      setTimeout(() => setPublished(false), 5000)
+    } catch (e) {
+      alert('Reorder failed: ' + (e as Error).message)
+    }
+  }
+
   if (loading) return <AdminLayout><p className="text-sm font-sans text-gray-500">Loading…</p></AdminLayout>
   if (error) return <AdminLayout><p className="text-sm font-sans text-red-600">{error}</p></AdminLayout>
   if (!content) return null
@@ -66,23 +86,27 @@ export default function Dashboard() {
       </Section>
 
       <Section title="Recent Works" newHref="/admin/new?type=works">
-        {content.works.map((w: WorkEntry) => (
+        {content.works.map((w: WorkEntry, i: number) => (
           <EntryRow
             key={w.slug}
             title={w.title}
             editHref={`/admin/works?slug=${w.slug}`}
             onDelete={() => deletePage('works', w.slug)}
+            onMoveUp={i > 0 ? () => movePage('works', w.slug, -1) : undefined}
+            onMoveDown={i < content.works.length - 1 ? () => movePage('works', w.slug, 1) : undefined}
           />
         ))}
       </Section>
 
       <Section title="Archives" newHref="/admin/new?type=archives">
-        {content.archives.map((a: WorkEntry) => (
+        {content.archives.map((a: WorkEntry, i: number) => (
           <EntryRow
             key={a.slug}
             title={a.title}
             editHref={`/admin/archives?slug=${a.slug}`}
             onDelete={() => deletePage('archives', a.slug)}
+            onMoveUp={i > 0 ? () => movePage('archives', a.slug, -1) : undefined}
+            onMoveDown={i < content.archives.length - 1 ? () => movePage('archives', a.slug, 1) : undefined}
           />
         ))}
       </Section>
@@ -106,16 +130,28 @@ function Section({ title, newHref, children }: { title: string; newHref?: string
   )
 }
 
-function EntryRow({ title, editHref, onDelete }: { title: string; editHref: string; onDelete?: () => void }) {
+function EntryRow({ title, editHref, onDelete, onMoveUp, onMoveDown }: {
+  title: string
+  editHref: string
+  onDelete?: () => void
+  onMoveUp?: () => void
+  onMoveDown?: () => void
+}) {
   return (
     <div className="flex items-center justify-between px-4 py-3">
       <span className="text-sm font-sans">{title}</span>
-      <div className="flex gap-3">
+      <div className="flex gap-3 items-center">
         <Link href={editHref} className="text-xs font-sans uppercase tracking-[0.0625em] hover:underline">Edit</Link>
         {onDelete && (
           <button onClick={onDelete} className="text-xs font-sans uppercase tracking-[0.0625em] text-red-600 hover:underline">
             Delete
           </button>
+        )}
+        {(onMoveUp || onMoveDown) && (
+          <div className="flex gap-1">
+            <button onClick={onMoveUp} disabled={!onMoveUp} className="text-xs font-sans px-1 border border-gray-300 hover:border-black disabled:opacity-30 disabled:cursor-default">↑</button>
+            <button onClick={onMoveDown} disabled={!onMoveDown} className="text-xs font-sans px-1 border border-gray-300 hover:border-black disabled:opacity-30 disabled:cursor-default">↓</button>
+          </div>
         )}
       </div>
     </div>
