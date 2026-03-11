@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useRef } from 'react'
 import { useEditor, EditorContent, NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react'
 import { Node, mergeAttributes } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
@@ -60,11 +60,9 @@ function toEmbedUrl(url: string): string | null {
 
 
 export default function RichTextEditor({ content, onChange, slug }: Props) {
-  // Maps temporary data URLs → permanent /images/... paths for uploads this session
   const pendingImages = useRef<Map<string, string>>(new Map())
-  const savedSelection = useRef<{ from: number; to: number } | null>(null)
-  const [showLinkInput, setShowLinkInput] = useState(false)
-  const [linkUrl, setLinkUrl] = useState('')
+  // Saved just before the button click shifts focus away from the editor
+  const savedSel = useRef<{ from: number; to: number }>({ from: 0, to: 0 })
 
   const editor = useEditor({
     extensions: [
@@ -79,7 +77,6 @@ export default function RichTextEditor({ content, onChange, slug }: Props) {
     shouldRerenderOnTransaction: true,
     onUpdate: ({ editor }) => {
       let html = editor.getHTML()
-      // Substitute any in-editor data URLs with their permanent paths before saving
       pendingImages.current.forEach((path, dataUrl) => {
         html = html.split(dataUrl).join(path)
       })
@@ -97,36 +94,18 @@ export default function RichTextEditor({ content, onChange, slug }: Props) {
       const file = input.files?.[0]
       if (!file) return
       const dataUrl = await fileToBase64(file)
-      // Insert the data URL immediately — image is visible right away
       editor.chain().focus().setImage({ src: dataUrl }).run()
       const timestamp = Date.now()
       const ext = file.name.split('.').pop()
       const filename = `${slug || 'page'}-inline-${timestamp}.${ext}`
       try {
         const path = await uploadImage(filename, dataUrl.split(',')[1])
-        // Record mapping so onChange swaps the data URL out for the real path
         pendingImages.current.set(dataUrl, path)
       } catch (e) {
         alert('Image upload failed: ' + (e as Error).message)
       }
     }
     input.click()
-  }
-
-  function applyLink() {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const e2 = editor as any
-    const sel = savedSelection.current
-    if (linkUrl === '') {
-      const c = sel ? e2.chain().focus().setTextSelection(sel) : e2.chain().focus()
-      c.unsetLink().run()
-    } else {
-      const c = sel ? e2.chain().focus().setTextSelection(sel) : e2.chain().focus()
-      c.setLink({ href: linkUrl }).run()
-    }
-    savedSelection.current = null
-    setShowLinkInput(false)
-    setLinkUrl('')
   }
 
   function insertVideo() {
@@ -137,8 +116,6 @@ export default function RichTextEditor({ content, onChange, slug }: Props) {
     editor.chain().focus().insertContent({ type: 'videoEmbed', attrs: { src: embedUrl } }).run()
   }
 
-  // Block-level commands need .focus() so they work even before user clicks into editor.
-  // onMouseDown + preventDefault prevents the editor losing focus when toolbar is clicked.
   const btn = (label: string, action: () => void, active = false) => (
     <button
       type="button"
@@ -152,30 +129,25 @@ export default function RichTextEditor({ content, onChange, slug }: Props) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const e = editor as any
 
-  // Link button: onMouseDown+preventDefault keeps editor selection intact
-  const linkBtn = showLinkInput ? (
-    <span className="flex items-center gap-1">
-      <input
-        type="url"
-        value={linkUrl}
-        onChange={ev => setLinkUrl(ev.target.value)}
-        onKeyDown={ev => { if (ev.key === 'Enter') { ev.preventDefault(); applyLink() } if (ev.key === 'Escape') setShowLinkInput(false) }}
-        placeholder="https://..."
-        autoFocus
-        className="text-xs font-sans border border-gray-300 px-2 py-1 focus:outline-none focus:border-black w-44"
-      />
-      <button type="button" onMouseDown={ev => { ev.preventDefault(); applyLink() }} className="px-2 py-1 text-xs font-sans border border-gray-300 hover:border-black">Apply</button>
-      <button type="button" onMouseDown={ev => { ev.preventDefault(); setShowLinkInput(false) }} className="px-2 py-1 text-xs font-sans border border-gray-300 hover:border-black">✕</button>
-    </span>
-  ) : (
+  // onMouseDown fires BEFORE the button steals focus, so we capture the selection.
+  // onClick fires after (and after window.prompt returns), then we restore it.
+  const linkBtn = (
     <button
       type="button"
-      onMouseDown={ev => {
-        ev.preventDefault()
+      onMouseDown={() => {
         const { from, to } = editor.state.selection
-        savedSelection.current = { from, to }
-        setLinkUrl((editor.getAttributes('link').href as string) || '')
-        setShowLinkInput(true)
+        savedSel.current = { from, to }
+      }}
+      onClick={() => {
+        const current = editor.getAttributes('link').href as string || ''
+        const url = window.prompt('URL (leave blank to remove):', current)
+        if (url === null) return
+        const { from, to } = savedSel.current
+        if (url === '') {
+          editor.chain().focus().setTextSelection({ from, to }).unsetLink().run()
+        } else {
+          editor.chain().focus().setTextSelection({ from, to }).setLink({ href: url }).run()
+        }
       }}
       className={`px-2 py-1 text-xs font-sans border ${editor.isActive('link') ? 'bg-black text-white border-black' : 'border-gray-300 hover:border-black'}`}
     >
