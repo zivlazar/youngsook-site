@@ -60,7 +60,7 @@ function NewPageForm() {
     }
     const updated: SiteContent = {
       ...content,
-      [type]: [...content[type], newEntry],
+      [type]: [newEntry, ...content[type]],
     }
     setSaving(true)
     try {

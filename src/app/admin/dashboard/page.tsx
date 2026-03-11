@@ -14,6 +14,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [published, setPublished] = useState(false)
+  const [reordering, setReordering] = useState(false)
 
   useEffect(() => {
     getContent()
@@ -44,13 +45,14 @@ export default function Dashboard() {
   }
 
   async function movePage(type: 'works' | 'archives', slug: string, dir: -1 | 1) {
-    if (!content) return
+    if (!content || reordering) return
     const list = [...content[type]]
     const idx = list.findIndex((e: WorkEntry) => e.slug === slug)
     const newIdx = idx + dir
     if (newIdx < 0 || newIdx >= list.length) return
     ;[list[idx], list[newIdx]] = [list[newIdx], list[idx]]
     const updated = { ...content, [type]: list }
+    setReordering(true)
     try {
       await putContent(updated, sha, `admin: reorder ${type}`)
       setContent(updated)
@@ -60,6 +62,8 @@ export default function Dashboard() {
       setTimeout(() => setPublished(false), 5000)
     } catch (e) {
       alert('Reorder failed: ' + (e as Error).message)
+    } finally {
+      setReordering(false)
     }
   }
 
@@ -94,6 +98,7 @@ export default function Dashboard() {
             onDelete={() => deletePage('works', w.slug)}
             onMoveUp={i > 0 ? () => movePage('works', w.slug, -1) : undefined}
             onMoveDown={i < content.works.length - 1 ? () => movePage('works', w.slug, 1) : undefined}
+            reordering={reordering}
           />
         ))}
       </Section>
@@ -107,6 +112,7 @@ export default function Dashboard() {
             onDelete={() => deletePage('archives', a.slug)}
             onMoveUp={i > 0 ? () => movePage('archives', a.slug, -1) : undefined}
             onMoveDown={i < content.archives.length - 1 ? () => movePage('archives', a.slug, 1) : undefined}
+            reordering={reordering}
           />
         ))}
       </Section>
@@ -130,12 +136,13 @@ function Section({ title, newHref, children }: { title: string; newHref?: string
   )
 }
 
-function EntryRow({ title, editHref, onDelete, onMoveUp, onMoveDown }: {
+function EntryRow({ title, editHref, onDelete, onMoveUp, onMoveDown, reordering }: {
   title: string
   editHref: string
   onDelete?: () => void
   onMoveUp?: () => void
   onMoveDown?: () => void
+  reordering?: boolean
 }) {
   return (
     <div className="flex items-center justify-between px-4 py-3">
@@ -149,8 +156,8 @@ function EntryRow({ title, editHref, onDelete, onMoveUp, onMoveDown }: {
         )}
         {(onMoveUp || onMoveDown) && (
           <div className="flex gap-1">
-            <button onClick={onMoveUp} disabled={!onMoveUp} className="text-xs font-sans px-1 border border-gray-300 hover:border-black disabled:opacity-30 disabled:cursor-default">↑</button>
-            <button onClick={onMoveDown} disabled={!onMoveDown} className="text-xs font-sans px-1 border border-gray-300 hover:border-black disabled:opacity-30 disabled:cursor-default">↓</button>
+            <button onClick={onMoveUp} disabled={!onMoveUp || reordering} className="text-xs font-sans px-1 border border-gray-300 hover:border-black disabled:opacity-30 disabled:cursor-default">↑</button>
+            <button onClick={onMoveDown} disabled={!onMoveDown || reordering} className="text-xs font-sans px-1 border border-gray-300 hover:border-black disabled:opacity-30 disabled:cursor-default">↓</button>
           </div>
         )}
       </div>
