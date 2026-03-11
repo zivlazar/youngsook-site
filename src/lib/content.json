@@ -23,6 +23,27 @@
   },
   "works": [
     {
+      "slug": "book-of-loss",
+      "title": "Book of Loss",
+      "category": "works",
+      "content": [
+        "<span class=\"image-big\"><img decoding=\"async\" class=\"alignnone wp-image-1158 size-large resized\" src=\"/images/book-of-loss-Youngsook-2-1024x683.jpg\" alt=\"\" width=\"768\" height=\"512\"></span>",
+        "<em><span data-preserver-spaces=\"true\">Book of Loss</span></em><span data-preserver-spaces=\"true\">&nbsp;is the intervention act for the party. It commemorates the seven glaciers lost in recent years. The figures of glaciers are drawn secretly on wine glasses with a UV Marker. The drawing would only reveal when the UV light sheds on. The glasses are served randomly with drinks to the guests. The intervention is navigating through the crowd to find them. Whenever I discover the hidden glacier, I open the Book of Loss and, with the guest holding the glass, read the bit about that particular glacier and discuss the impact of its loss. It is about creating an intimate ephemeral moment of ecological grief and quietly holding the space for all the livelihoods affected by the loss of glaciers in the middle of the hustle-bustle.&nbsp;</span>",
+        "<span data-preserver-spaces=\"true\">So, let me know if you plan to host the party with policymakers or influential people. I will be there with my Book of Loss.&nbsp;&nbsp;</span>",
+        "<span data-preserver-spaces=\"true\">* Commissioned by UP Projects (2022) </span>&nbsp;&nbsp;"
+      ],
+      "images": [
+        {
+          "src": "/images/book-of-loss-Youngsook-Book-of-Loss-2022-2000x1500.jpg",
+          "alt": ""
+        },
+        {
+          "src": "/images/book-of-loss-Youngsook-2-1024x683.jpg",
+          "alt": ""
+        }
+      ]
+    },
+    {
       "slug": "seasons-of-the-mouth",
       "title": "Seasons of the Mouth",
       "category": "works",
@@ -66,27 +87,6 @@
         },
         {
           "src": "/images/seasons-of-the-mouth-07-1024x576.png",
-          "alt": ""
-        }
-      ]
-    },
-    {
-      "slug": "book-of-loss",
-      "title": "Book of Loss",
-      "category": "works",
-      "content": [
-        "<span class=\"image-big\"><img decoding=\"async\" class=\"alignnone wp-image-1158 size-large resized\" src=\"/images/book-of-loss-Youngsook-2-1024x683.jpg\" alt=\"\" width=\"768\" height=\"512\"></span>",
-        "<em><span data-preserver-spaces=\"true\">Book of Loss</span></em><span data-preserver-spaces=\"true\">&nbsp;is the intervention act for the party. It commemorates the seven glaciers lost in recent years. The figures of glaciers are drawn secretly on wine glasses with a UV Marker. The drawing would only reveal when the UV light sheds on. The glasses are served randomly with drinks to the guests. The intervention is navigating through the crowd to find them. Whenever I discover the hidden glacier, I open the Book of Loss and, with the guest holding the glass, read the bit about that particular glacier and discuss the impact of its loss. It is about creating an intimate ephemeral moment of ecological grief and quietly holding the space for all the livelihoods affected by the loss of glaciers in the middle of the hustle-bustle.&nbsp;</span>",
-        "<span data-preserver-spaces=\"true\">So, let me know if you plan to host the party with policymakers or influential people. I will be there with my Book of Loss.&nbsp;&nbsp;</span>",
-        "<span data-preserver-spaces=\"true\">* Commissioned by UP Projects (2022) </span>&nbsp;&nbsp;"
-      ],
-      "images": [
-        {
-          "src": "/images/book-of-loss-Youngsook-Book-of-Loss-2022-2000x1500.jpg",
-          "alt": ""
-        },
-        {
-          "src": "/images/book-of-loss-Youngsook-2-1024x683.jpg",
           "alt": ""
         }
       ]
