@@ -27,6 +27,8 @@ export default function EditHome() {
     setSaving(true)
     try {
       await putContent(content, sha, 'admin: update home hero image')
+      const fresh = await getContent()
+      setSha(fresh.sha)
       setSaved(true)
       setTimeout(() => setSaved(false), 5000)
     } catch (e) {

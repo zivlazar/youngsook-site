@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import AdminLayout from '@/components/admin/AdminLayout'
 import RichTextEditor from '@/components/admin/RichTextEditor'
@@ -22,9 +22,11 @@ export default function EditAbout() {
       .finally(() => setLoading(false))
   }, [router])
 
-  const htmlContent = content
-    ? content.introduction.paragraphs.map(p => `<p>${p}</p>`).join('')
-    : ''
+  const htmlContent = useMemo(
+    () => content ? content.introduction.paragraphs.map(p => `<p>${p}</p>`).join('') : '',
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [] // only compute once — TipTap initialises from content prop on mount only
+  )
 
   function handleChange(html: string) {
     if (!content) return
@@ -39,6 +41,8 @@ export default function EditAbout() {
     setSaving(true)
     try {
       await putContent(content, sha, 'admin: update introduction')
+      const fresh = await getContent()
+      setSha(fresh.sha)
       setSaved(true)
       setTimeout(() => setSaved(false), 5000)
     } catch (e) {

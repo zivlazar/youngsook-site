@@ -49,6 +49,8 @@ function WorkEditor() {
     try {
       await putContent(updated, sha, `admin: update ${work.title}`)
       setContent(updated)
+      const fresh = await getContent()
+      setSha(fresh.sha)
       setSaved(true)
       setTimeout(() => setSaved(false), 5000)
     } catch (e) {
