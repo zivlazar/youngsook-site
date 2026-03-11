@@ -68,9 +68,14 @@ function WorkEditor() {
     <AdminLayout>
       <div className="flex items-center justify-between mb-8">
         <h1 className="font-sans uppercase tracking-[0.0625em] text-sm">Edit Work</h1>
-        <button onClick={save} disabled={saving} className="bg-black text-white px-5 py-2 text-xs font-sans uppercase tracking-[0.0625em] hover:bg-gray-800 disabled:opacity-50">
-          {saving ? 'Saving…' : 'Save & Publish'}
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => router.back()} disabled={saving} className="px-5 py-2 text-xs font-sans uppercase tracking-[0.0625em] border border-gray-300 hover:border-black disabled:opacity-50">
+            Cancel
+          </button>
+          <button onClick={save} disabled={saving} className="bg-black text-white px-5 py-2 text-xs font-sans uppercase tracking-[0.0625em] hover:bg-gray-800 disabled:opacity-50">
+            {saving ? 'Saving…' : 'Save & Publish'}
+          </button>
+        </div>
       </div>
       {saved && <p className="mb-4 text-xs font-sans text-green-700">Published — live in ~3 minutes.</p>}
       <div className="space-y-8">
