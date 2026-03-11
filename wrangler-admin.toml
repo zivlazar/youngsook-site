@@ -2,6 +2,7 @@ name = "youngsook-admin-worker"
 main = "worker/admin-worker.js"
 compatibility_date = "2024-09-23"
 
-[[routes]]
-pattern = "admin-worker.youngsookchoi.com/*"
-zone_name = "youngsookchoi.com"
+# Routes will be added once domain is migrated to Cloudflare
+# [[routes]]
+# pattern = "admin-worker.youngsookchoi.com/*"
+# zone_name = "youngsookchoi.com"

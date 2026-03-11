@@ -46,7 +46,10 @@ export async function uploadImage(filename: string, base64: string): Promise<str
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({ filename, base64 }),
   })
-  if (!res.ok) throw new Error('Image upload failed')
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.error || `Image upload failed (${res.status})`)
+  }
   const { path } = await res.json()
   return path
 }
