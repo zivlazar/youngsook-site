@@ -115,14 +115,14 @@ export default function RichTextEditor({ content, onChange, slug }: Props) {
 
   function applyLink() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const chain = (editor as any).chain().focus()
-    if (savedSelection.current) {
-      chain.setTextSelection(savedSelection.current)
-    }
+    const e2 = editor as any
+    const sel = savedSelection.current
     if (linkUrl === '') {
-      chain.unsetLink().run()
+      const c = sel ? e2.chain().focus().setTextSelection(sel) : e2.chain().focus()
+      c.unsetLink().run()
     } else {
-      chain.setLink({ href: linkUrl }).run()
+      const c = sel ? e2.chain().focus().setTextSelection(sel) : e2.chain().focus()
+      c.setLink({ href: linkUrl }).run()
     }
     savedSelection.current = null
     setShowLinkInput(false)
