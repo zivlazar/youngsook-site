@@ -9,9 +9,13 @@ interface Props {
   onUpload: (path: string) => void
 }
 
+const CACHE_KEY_PREFIX = 'img_cache_'
+
 export default function ImageUpload({ currentSrc, slug, onUpload }: Props) {
+  const cacheKey = `${CACHE_KEY_PREFIX}${slug}`
+  const cached = typeof window !== 'undefined' ? localStorage.getItem(cacheKey) : null
   const [preview, setPreview] = useState(currentSrc)
-  const [imgBroken, setImgBroken] = useState(false)
+  const [fallback, setFallback] = useState<string | null>(cached)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -21,7 +25,6 @@ export default function ImageUpload({ currentSrc, slug, onUpload }: Props) {
     if (!file) return
     setError('')
     setUploading(true)
-    setImgBroken(false)
 
     // Show local preview immediately
     const objectUrl = URL.createObjectURL(file)
@@ -33,7 +36,10 @@ export default function ImageUpload({ currentSrc, slug, onUpload }: Props) {
       const filename = `${slug}-hero.${ext}`
       const path = await uploadImage(filename, base64.split(',')[1])
       onUpload(path)
-      // Keep the object URL as preview — the GitHub path won't be live until Pages rebuilds
+      // Cache the data URL so it survives page reloads until Pages rebuilds
+      const dataUrl = base64
+      localStorage.setItem(cacheKey, dataUrl)
+      setFallback(dataUrl)
     } catch (e) {
       setError('Upload failed: ' + (e as Error).message)
       setPreview(currentSrc)
@@ -42,18 +48,32 @@ export default function ImageUpload({ currentSrc, slug, onUpload }: Props) {
     }
   }
 
+  function handleImgError() {
+    if (fallback) {
+      setPreview(fallback)
+    }
+  }
+
+  function handleImgLoad() {
+    // Image loaded from GitHub — clear the cache
+    if (fallback && preview !== fallback) {
+      localStorage.removeItem(cacheKey)
+      setFallback(null)
+    }
+  }
+
   return (
     <div className="space-y-3">
       {preview && (
         <div className="relative bg-gray-100 aspect-video w-full overflow-hidden">
-          {imgBroken ? (
-            <div className="absolute inset-0 flex items-center justify-center text-xs font-sans text-gray-400 text-center px-4">
-              Image will appear here in a few minutes after the site rebuilds
-            </div>
-          ) : (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img src={preview} alt="" className="w-full h-full object-cover" onError={() => setImgBroken(true)} />
-          )}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={preview}
+            alt=""
+            className="w-full h-full object-cover"
+            onError={handleImgError}
+            onLoad={handleImgLoad}
+          />
           {uploading && (
             <div className="absolute inset-0 bg-white/70 flex items-center justify-center text-xs font-sans">
               Uploading…
