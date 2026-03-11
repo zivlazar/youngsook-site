@@ -6,15 +6,15 @@ import Link from 'next/link'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
-  const [ready, setReady] = useState(false)
+  const [checked, setChecked] = useState(false)
 
   useEffect(() => {
-    const token = localStorage.getItem('admin_token')
-    if (!token) {
+    if (!localStorage.getItem('admin_token')) {
       router.replace('/admin')
-    } else {
-      setReady(true)
+      return
     }
+    const id = setTimeout(() => setChecked(true), 0)
+    return () => clearTimeout(id)
   }, [router])
 
   function logout() {
@@ -22,7 +22,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     router.replace('/admin')
   }
 
-  if (!ready) return null
+  if (!checked) return null
 
   return (
     <div className="min-h-screen bg-gray-50">

@@ -185,6 +185,9 @@ async function handleUploadImage(request, env, origin) {
   if (!filename || !/^[a-zA-Z0-9_\-\.]+$/.test(filename)) {
     return json({ error: 'Invalid filename' }, 400, origin)
   }
+  if (!base64 || base64.length > 10_000_000) {
+    return json({ error: 'Image too large (max ~7.5 MB)' }, 400, origin)
+  }
   const path = `public/images/${filename}`
   const body = { message: `admin: upload ${filename}`, content: base64 }
   if (sha) body.sha = sha
@@ -225,7 +228,7 @@ async function handleDeleteImage(request, env, origin) {
   }
 }
 
-export default {
+const worker = {
   async fetch(request, env) {
     const origin = request.headers.get('Origin') || ''
     if (request.method === 'OPTIONS') {
@@ -246,3 +249,5 @@ export default {
     }
   },
 }
+
+export default worker

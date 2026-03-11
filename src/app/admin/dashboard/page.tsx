@@ -34,6 +34,8 @@ export default function Dashboard() {
     try {
       await putContent(updated, sha, `admin: delete ${slug}`)
       setContent(updated)
+      const fresh = await getContent()
+      setSha(fresh.sha)
       setPublished(true)
       setTimeout(() => setPublished(false), 5000)
     } catch (e) {
