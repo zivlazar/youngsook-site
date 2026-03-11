@@ -41,7 +41,7 @@ export default async function WorkDetail({ params }: { params: Promise<{ slug: s
         </h1>
         <div className="space-y-6 leading-relaxed [&_img]:w-full [&_img]:h-auto [&_img]:my-4 [&_span.image-big]:block [&_a]:underline [&_a]:text-blue-600">
           {work.content.map((html, i) => (
-            <div key={i} dangerouslySetInnerHTML={{ __html: html }} />
+            <div key={i} dangerouslySetInnerHTML={{ __html: html.replace(/<a /g, '<a target="_blank" rel="noopener noreferrer" ') }} />
           ))}
         </div>
       </div>
