@@ -10,21 +10,26 @@ import type { SiteContent, WorkEntry } from '@/lib/admin-api'
 export default function Dashboard() {
   const router = useRouter()
   const [content, setContent] = useState<SiteContent | null>(null)
-  const [sha, setSha] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [published, setPublished] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [reordering, setReordering] = useState(false)
 
   useEffect(() => {
     getContent()
-      .then(({ content, sha }) => { setContent(content); setSha(sha) })
+      .then(({ content }) => { setContent(content) })
       .catch(e => {
         if (e.message === 'Unauthorized') router.replace('/admin')
         else setError(e.message)
       })
       .finally(() => setLoading(false))
   }, [router])
+
+  function showError(msg: string) {
+    setSaveError(msg)
+    setTimeout(() => setSaveError(''), 5000)
+  }
 
   async function deletePage(type: 'works' | 'archives', slug: string) {
     if (!content || !window.confirm(`Delete "${slug}"? This cannot be undone.`)) return
@@ -33,14 +38,13 @@ export default function Dashboard() {
       [type]: content[type].filter((e: WorkEntry) => e.slug !== slug),
     }
     try {
-      await putContent(updated, sha, `admin: delete ${slug}`)
+      const current = await getContent()
+      await putContent(updated, current.sha, `admin: delete ${slug}`)
       setContent(updated)
-      const fresh = await getContent()
-      setSha(fresh.sha)
       setPublished(true)
       setTimeout(() => setPublished(false), 5000)
     } catch (e) {
-      alert('Delete failed: ' + (e as Error).message)
+      showError('Delete failed: ' + (e as Error).message)
     }
   }
 
@@ -54,14 +58,13 @@ export default function Dashboard() {
     const updated = { ...content, [type]: list }
     setReordering(true)
     try {
-      await putContent(updated, sha, `admin: reorder ${type}`)
+      const current = await getContent()
+      await putContent(updated, current.sha, `admin: reorder ${type}`)
       setContent(updated)
-      const fresh = await getContent()
-      setSha(fresh.sha)
       setPublished(true)
       setTimeout(() => setPublished(false), 5000)
     } catch (e) {
-      alert('Reorder failed: ' + (e as Error).message)
+      showError('Reorder failed: ' + (e as Error).message)
     } finally {
       setReordering(false)
     }
@@ -76,6 +79,11 @@ export default function Dashboard() {
       {published && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-black text-white text-xs font-sans px-5 py-3 shadow-lg">
           Saved & published. It may take ~1 minute to update on the live site.
+        </div>
+      )}
+      {saveError && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-red-600 text-white text-xs font-sans px-5 py-3 shadow-lg">
+          {saveError}
         </div>
       )}
 
