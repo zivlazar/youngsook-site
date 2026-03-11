@@ -31,7 +31,7 @@ export default function ImageUpload({ currentSrc, slug, onUpload }: Props) {
       const filename = `${slug}-hero.${ext}`
       const path = await uploadImage(filename, base64.split(',')[1])
       onUpload(path)
-      setPreview(path)
+      // Keep the object URL as preview — the GitHub path won't be live until Pages rebuilds
     } catch (e) {
       setError('Upload failed: ' + (e as Error).message)
       setPreview(currentSrc)
