@@ -1,6 +1,6 @@
 import type { SiteContent } from './data'
 
-const WORKER_URL = 'https://admin-worker.youngsookchoi.com'
+const WORKER_URL = 'https://youngsook-admin-worker.zivlazar.workers.dev'
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null
