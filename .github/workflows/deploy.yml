@@ -22,5 +22,5 @@ jobs:
       - name: Deploy to Cloudflare Pages
         run: npx wrangler pages deploy out --project-name youngsook-site --commit-dirty=true
         env:
-          CLOUDFLARE_OAUTH_TOKEN: ${{ secrets.CLOUDFLARE_OAUTH_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: 70d56f468be29ac4bc632d9c0ee7dca1
