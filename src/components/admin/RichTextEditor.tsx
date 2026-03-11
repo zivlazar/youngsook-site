@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef } from 'react'
 import { useEditor, EditorContent, NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react'
 import { Node, mergeAttributes } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
@@ -15,28 +15,6 @@ interface Props {
   onChange: (html: string) => void
   slug?: string
 }
-
-// ── Inline image with localStorage fallback ──────────────────────────────────
-function CachedImageView({ node }: NodeViewProps) {
-  const [src, setSrc] = useState(node.attrs.src as string)
-  return (
-    <NodeViewWrapper as="span" style={{ display: 'inline-block' }}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={src}
-        alt={(node.attrs.alt as string) || ''}
-        style={{ maxWidth: '100%' }}
-        onError={() => {
-          const cached = localStorage.getItem(`img_cache_${node.attrs.src}`)
-          if (cached) setSrc(cached)
-        }}
-      />
-    </NodeViewWrapper>
-  )
-}
-const CachedImage = Image.extend({
-  addNodeView() { return ReactNodeViewRenderer(CachedImageView) },
-})
 
 // ── Video embed node (YouTube / Vimeo) ───────────────────────────────────────
 function VideoNodeView({ node }: NodeViewProps) {
@@ -82,18 +60,28 @@ function toEmbedUrl(url: string): string | null {
 
 
 export default function RichTextEditor({ content, onChange, slug }: Props) {
+  // Maps temporary data URLs → permanent /images/... paths for uploads this session
+  const pendingImages = useRef<Map<string, string>>(new Map())
+
   const editor = useEditor({
     extensions: [
       StarterKit,
       Link.configure({ openOnClick: false }),
-      CachedImage,
+      Image,
       VideoEmbed,
       TextStyle,
       FontSize,
     ],
     content,
     shouldRerenderOnTransaction: true,
-    onUpdate: ({ editor }) => onChange(editor.getHTML()),
+    onUpdate: ({ editor }) => {
+      let html = editor.getHTML()
+      // Substitute any in-editor data URLs with their permanent paths before saving
+      pendingImages.current.forEach((path, dataUrl) => {
+        html = html.split(dataUrl).join(path)
+      })
+      onChange(html)
+    },
   })
 
   if (!editor) return null
@@ -105,14 +93,16 @@ export default function RichTextEditor({ content, onChange, slug }: Props) {
     input.onchange = async () => {
       const file = input.files?.[0]
       if (!file) return
-      const base64 = await fileToBase64(file)
+      const dataUrl = await fileToBase64(file)
+      // Insert the data URL immediately — image is visible right away
+      editor.chain().focus().setImage({ src: dataUrl }).run()
       const timestamp = Date.now()
       const ext = file.name.split('.').pop()
       const filename = `${slug || 'page'}-inline-${timestamp}.${ext}`
       try {
-        const path = await uploadImage(filename, base64.split(',')[1])
-        try { localStorage.setItem(`img_cache_${path}`, base64) } catch { /* quota exceeded */ }
-        editor.chain().focus().setImage({ src: path }).run()
+        const path = await uploadImage(filename, dataUrl.split(',')[1])
+        // Record mapping so onChange swaps the data URL out for the real path
+        pendingImages.current.set(dataUrl, path)
       } catch (e) {
         alert('Image upload failed: ' + (e as Error).message)
       }
