@@ -189,8 +189,18 @@ async function handleUploadImage(request, env, origin) {
     return json({ error: 'Image too large (max ~7.5 MB)' }, 400, origin)
   }
   const path = `public/images/${filename}`
+  // Fetch existing SHA if file already exists (required by GitHub API for updates)
+  let existingSha = sha
+  if (!existingSha) {
+    try {
+      const existing = await githubGet(path, env)
+      existingSha = existing.sha
+    } catch {
+      // File doesn't exist yet — no SHA needed
+    }
+  }
   const body = { message: `admin: upload ${filename}`, content: base64 }
-  if (sha) body.sha = sha
+  if (existingSha) body.sha = existingSha
   const res = await fetch(`https://api.github.com/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/contents/${path}`, {
     method: 'PUT',
     headers: {
