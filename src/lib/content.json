@@ -71,20 +71,6 @@
       ]
     },
     {
-      "slug": "test-6",
-      "title": "test 6",
-      "category": "works",
-      "content": [
-        "<p>hggh</p><p><span style=\"font-size: 1.4em;\">ggh</span></p><img src=\"/images/new-inline-1773241292975.png\"><blockquote><p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"hvhv.com\"><span style=\"font-size: 1.8em;\">hf</span><span>hghgh</span></a></p><p><span>cccc</span></p></blockquote><p></p>"
-      ],
-      "images": [
-        {
-          "src": "/images/test-6-hero.png",
-          "alt": ""
-        }
-      ]
-    },
-    {
       "slug": "book-of-loss",
       "title": "Book of Loss",
       "category": "works",
@@ -101,6 +87,20 @@
         },
         {
           "src": "/images/book-of-loss-Youngsook-2-1024x683.jpg",
+          "alt": ""
+        }
+      ]
+    },
+    {
+      "slug": "test-6",
+      "title": "test 6",
+      "category": "works",
+      "content": [
+        "<p>hggh</p><p><span style=\"font-size: 1.4em;\">ggh</span></p><img src=\"/images/new-inline-1773241292975.png\"><blockquote><p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"hvhv.com\"><span style=\"font-size: 1.8em;\">hf</span><span>hghgh</span></a></p><p><span>cccc</span></p></blockquote><p></p>"
+      ],
+      "images": [
+        {
+          "src": "/images/test-6-hero.png",
           "alt": ""
         }
       ]
