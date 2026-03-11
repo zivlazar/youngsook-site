@@ -75,7 +75,7 @@ export default function Dashboard() {
     <AdminLayout>
       {published && (
         <div className="mb-6 bg-green-50 border border-green-200 px-4 py-3 text-sm font-sans text-green-800">
-          Published — live in ~3 minutes after Cloudflare Pages rebuilds.
+          Saved & published. It may take ~1 minute to update on the live site.
         </div>
       )}
 

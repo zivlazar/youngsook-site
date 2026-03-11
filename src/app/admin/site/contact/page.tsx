@@ -67,7 +67,7 @@ export default function EditContact() {
           </button>
         </div>
       </div>
-      {saved && <p className="mb-4 text-xs font-sans text-green-700">Published — live in ~3 minutes.</p>}
+      {saved && <p className="mb-4 text-xs font-sans text-green-700">Saved & published. It may take ~1 minute to update on the live site.</p>}
       <div className="space-y-6">
         <div>
           <label className="block text-xs font-sans uppercase tracking-[0.0625em] text-gray-500 mb-2">Email</label>
