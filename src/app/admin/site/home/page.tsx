@@ -53,7 +53,7 @@ export default function EditHome() {
           </button>
         </div>
       </div>
-      {saved && <p className="mb-4 text-xs font-sans text-green-700">Saved & published. It may take ~1 minute to update on the live site.</p>}
+      {saved && <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-black text-white text-xs font-sans px-5 py-3 shadow-lg">Saved & published. It may take ~1 minute to update on the live site.</div>}
       <ImageUpload
         currentSrc={content.homeHero}
         slug="hero"
