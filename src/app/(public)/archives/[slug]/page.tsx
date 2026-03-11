@@ -39,7 +39,7 @@ export default async function ArchiveDetail({ params }: { params: Promise<{ slug
         <h1 className="font-sans uppercase tracking-[0.0625em] text-[1.5em] min-[768px]:text-[2.25em] font-normal leading-tight mb-10 text-center">
           {item.title}
         </h1>
-        <div className="space-y-6 leading-relaxed [&_img]:w-full [&_img]:h-auto [&_img]:my-4 [&_span.image-big]:block">
+        <div className="space-y-6 leading-relaxed [&_img]:w-full [&_img]:h-auto [&_img]:my-4 [&_span.image-big]:block [&_a]:underline [&_a]:text-blue-600">
           {item.content.map((html, i) => (
             <div key={i} dangerouslySetInnerHTML={{ __html: html }} />
           ))}
