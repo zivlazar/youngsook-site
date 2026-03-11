@@ -64,7 +64,7 @@ async function verifyJWT(token, secret) {
     const sigBytes = Uint8Array.from(atob(sig.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0))
     const valid = await crypto.subtle.verify('HMAC', key, sigBytes, encoder.encode(data))
     if (!valid) return null
-    const payload = JSON.parse(atob(body))
+    const payload = JSON.parse(atob(body.replace(/-/g, '+').replace(/_/g, '/')))
     if (payload.exp < Date.now() / 1000) return null
     return payload
   } catch {
