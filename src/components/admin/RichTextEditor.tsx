@@ -62,6 +62,7 @@ function toEmbedUrl(url: string): string | null {
 export default function RichTextEditor({ content, onChange, slug }: Props) {
   // Maps temporary data URLs → permanent /images/... paths for uploads this session
   const pendingImages = useRef<Map<string, string>>(new Map())
+  const savedSelection = useRef<{ from: number; to: number } | null>(null)
   const [showLinkInput, setShowLinkInput] = useState(false)
   const [linkUrl, setLinkUrl] = useState('')
 
@@ -113,11 +114,17 @@ export default function RichTextEditor({ content, onChange, slug }: Props) {
   }
 
   function applyLink() {
-    if (linkUrl === '') {
-      editor.chain().focus().unsetLink().run()
-    } else {
-      editor.chain().focus().setLink({ href: linkUrl }).run()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const chain = (editor as any).chain().focus()
+    if (savedSelection.current) {
+      chain.setTextSelection(savedSelection.current)
     }
+    if (linkUrl === '') {
+      chain.unsetLink().run()
+    } else {
+      chain.setLink({ href: linkUrl }).run()
+    }
+    savedSelection.current = null
     setShowLinkInput(false)
     setLinkUrl('')
   }
@@ -165,6 +172,8 @@ export default function RichTextEditor({ content, onChange, slug }: Props) {
       type="button"
       onMouseDown={ev => {
         ev.preventDefault()
+        const { from, to } = editor.state.selection
+        savedSelection.current = { from, to }
         setLinkUrl((editor.getAttributes('link').href as string) || '')
         setShowLinkInput(true)
       }}
