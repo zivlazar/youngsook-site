@@ -2,9 +2,11 @@
 
 import { useState } from 'react'
 import { useEditor, EditorContent, NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react'
+import { Node, mergeAttributes } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
 import Image from '@tiptap/extension-image'
+import { TextStyle, FontSize } from '@tiptap/extension-text-style'
 import { uploadImage } from '@/lib/admin-api'
 import type { NodeViewProps } from '@tiptap/react'
 
@@ -14,10 +16,9 @@ interface Props {
   slug?: string
 }
 
-// Custom image node view — falls back to localStorage cache when GitHub path not yet live
+// ── Inline image with localStorage fallback ──────────────────────────────────
 function CachedImageView({ node }: NodeViewProps) {
   const [src, setSrc] = useState(node.attrs.src as string)
-
   return (
     <NodeViewWrapper as="span" style={{ display: 'inline-block' }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -33,12 +34,52 @@ function CachedImageView({ node }: NodeViewProps) {
     </NodeViewWrapper>
   )
 }
-
 const CachedImage = Image.extend({
-  addNodeView() {
-    return ReactNodeViewRenderer(CachedImageView)
-  },
+  addNodeView() { return ReactNodeViewRenderer(CachedImageView) },
 })
+
+// ── Video embed node (YouTube / Vimeo) ───────────────────────────────────────
+function VideoNodeView({ node }: NodeViewProps) {
+  return (
+    <NodeViewWrapper>
+      <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden', marginBottom: '1em' }}>
+        <iframe
+          src={node.attrs.src as string}
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }}
+          allowFullScreen
+          title="video"
+        />
+      </div>
+    </NodeViewWrapper>
+  )
+}
+const VideoEmbed = Node.create({
+  name: 'videoEmbed',
+  group: 'block',
+  atom: true,
+  addAttributes() { return { src: { default: null } } },
+  parseHTML() { return [{ tag: 'iframe[data-video]' }] },
+  renderHTML({ HTMLAttributes }) {
+    return ['div', { 'data-video': 'true', style: 'position:relative;padding-bottom:56.25%;height:0;overflow:hidden;margin-bottom:1em' },
+      ['iframe', mergeAttributes({ src: HTMLAttributes.src }, {
+        style: 'position:absolute;top:0;left:0;width:100%;height:100%;border:0',
+        allowfullscreen: 'true',
+        'data-video': 'true',
+      })],
+    ]
+  },
+  addNodeView() { return ReactNodeViewRenderer(VideoNodeView) },
+})
+
+function toEmbedUrl(url: string): string | null {
+  const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]+)/)
+  if (yt) return `https://www.youtube.com/embed/${yt[1]}`
+  const vimeo = url.match(/vimeo\.com\/(\d+)/)
+  if (vimeo) return `https://player.vimeo.com/video/${vimeo[1]}`
+  if (url.includes('youtube.com/embed/') || url.includes('player.vimeo.com/')) return url
+  return null
+}
+
 
 export default function RichTextEditor({ content, onChange, slug }: Props) {
   const editor = useEditor({
@@ -46,6 +87,9 @@ export default function RichTextEditor({ content, onChange, slug }: Props) {
       StarterKit,
       Link.configure({ openOnClick: false }),
       CachedImage,
+      VideoEmbed,
+      TextStyle,
+      FontSize,
     ],
     content,
     shouldRerenderOnTransaction: true,
@@ -67,7 +111,6 @@ export default function RichTextEditor({ content, onChange, slug }: Props) {
       const filename = `${slug || 'page'}-inline-${timestamp}.${ext}`
       try {
         const path = await uploadImage(filename, base64.split(',')[1])
-        // Cache data URL so it shows immediately before Pages rebuilds
         try { localStorage.setItem(`img_cache_${path}`, base64) } catch { /* quota exceeded */ }
         editor.chain().focus().setImage({ src: path }).run()
       } catch (e) {
@@ -78,7 +121,7 @@ export default function RichTextEditor({ content, onChange, slug }: Props) {
   }
 
   function setLink() {
-    const url = window.prompt('URL:', editor.getAttributes('link').href as string || '')
+    const url = window.prompt('URL:', (editor.getAttributes('link').href as string) || '')
     if (url === null) return
     if (url === '') {
       editor.chain().focus().unsetLink().run()
@@ -87,7 +130,16 @@ export default function RichTextEditor({ content, onChange, slug }: Props) {
     }
   }
 
-  // Use onMouseDown + preventDefault so editor never loses focus before command runs
+  function insertVideo() {
+    const url = window.prompt('YouTube or Vimeo URL:')
+    if (!url) return
+    const embedUrl = toEmbedUrl(url.trim())
+    if (!embedUrl) { alert('Please enter a valid YouTube or Vimeo URL.'); return }
+    editor.chain().focus().insertContent({ type: 'videoEmbed', attrs: { src: embedUrl } }).run()
+  }
+
+  // Block-level commands need .focus() so they work even before user clicks into editor.
+  // onMouseDown + preventDefault prevents the editor losing focus when toolbar is clicked.
   const btn = (label: string, action: () => void, active = false) => (
     <button
       type="button"
@@ -98,18 +150,39 @@ export default function RichTextEditor({ content, onChange, slug }: Props) {
     </button>
   )
 
+  // Link opens window.prompt — use onClick so browser doesn't block the dialog
+  const linkBtn = (
+    <button
+      type="button"
+      onClick={setLink}
+      className={`px-2 py-1 text-xs font-sans border ${editor.isActive('link') ? 'bg-black text-white border-black' : 'border-gray-300 hover:border-black'}`}
+    >
+      Link
+    </button>
+  )
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const e = editor as any
+
   return (
     <div className="border border-gray-300 focus-within:border-black">
       <div className="flex flex-wrap gap-1 p-2 border-b border-gray-200 bg-gray-50">
-        {btn('B', () => editor.chain().toggleBold().run(), editor.isActive('bold'))}
-        {btn('I', () => editor.chain().toggleItalic().run(), editor.isActive('italic'))}
-        {btn('H2', () => editor.chain().toggleHeading({ level: 2 }).run(), editor.isActive('heading', { level: 2 }))}
-        {btn('H3', () => editor.chain().toggleHeading({ level: 3 }).run(), editor.isActive('heading', { level: 3 }))}
-        {btn('¶', () => editor.chain().setParagraph().run(), editor.isActive('paragraph'))}
-        {btn('" "', () => editor.chain().toggleBlockquote().run(), editor.isActive('blockquote'))}
-        {btn('Link', setLink, editor.isActive('link'))}
+        {btn('B', () => e.chain().focus().toggleBold().run(), e.isActive('bold'))}
+        {btn('I', () => e.chain().focus().toggleItalic().run(), e.isActive('italic'))}
+        <span className="border-l border-gray-200 mx-1" />
+        {btn('H2', () => e.chain().focus().toggleHeading({ level: 2 }).run(), e.isActive('heading', { level: 2 }))}
+        {btn('H3', () => e.chain().focus().toggleHeading({ level: 3 }).run(), e.isActive('heading', { level: 3 }))}
+        {btn('¶', () => e.chain().focus().setParagraph().run(), e.isActive('paragraph'))}
+        <span className="border-l border-gray-200 mx-1" />
+        {btn('Large', () => e.chain().focus().setFontSize('1.4em').run())}
+        {btn('XL', () => e.chain().focus().setFontSize('1.8em').run())}
+        {btn('Normal', () => e.chain().focus().unsetFontSize().run())}
+        <span className="border-l border-gray-200 mx-1" />
+        {btn('" "', () => e.chain().focus().toggleBlockquote().run(), e.isActive('blockquote'))}
+        {linkBtn}
+        {btn('Video', insertVideo)}
         {btn('Image', handleImageUpload)}
-        {btn('Clear', () => editor.chain().clearNodes().unsetAllMarks().run())}
+        {btn('Clear', () => e.chain().focus().clearNodes().unsetAllMarks().run())}
       </div>
       <EditorContent
         editor={editor}
