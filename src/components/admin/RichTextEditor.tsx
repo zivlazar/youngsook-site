@@ -4,7 +4,6 @@ import { useRef } from 'react'
 import { useEditor, EditorContent, NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react'
 import { Node, mergeAttributes } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
-import Link from '@tiptap/extension-link'
 import Image from '@tiptap/extension-image'
 import { TextStyle, FontSize } from '@tiptap/extension-text-style'
 import { uploadImage } from '@/lib/admin-api'
@@ -66,8 +65,7 @@ export default function RichTextEditor({ content, onChange, slug }: Props) {
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
-      Link.configure({ openOnClick: false }),
+      StarterKit.configure({ link: { openOnClick: false } }),
       Image.configure({ allowBase64: true }),
       VideoEmbed,
       TextStyle,
