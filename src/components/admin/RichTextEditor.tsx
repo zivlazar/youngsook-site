@@ -170,7 +170,7 @@ export default function RichTextEditor({ content, onChange, slug }: Props) {
       </div>
       <EditorContent
         editor={editor}
-        className="prose prose-sm max-w-none p-4 min-h-[200px] focus:outline-none [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[200px]"
+        className="prose prose-sm max-w-none p-4 min-h-[200px] focus:outline-none [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[200px] [&_.ProseMirror_a]:underline [&_.ProseMirror_a]:text-blue-600"
       />
     </div>
   )
