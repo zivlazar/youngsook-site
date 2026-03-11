@@ -19,6 +19,7 @@ function WorkEditor() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [archiving, setArchiving] = useState(false)
 
   useEffect(() => {
     if (!slug) { router.replace('/admin/dashboard'); return }
@@ -37,6 +38,24 @@ function WorkEditor() {
   function updateWork(patch: Partial<WorkEntry>) {
     if (!work) return
     setWork({ ...work, ...patch })
+  }
+
+  async function archive() {
+    if (!content || !work) return
+    if (!confirm(`Move "${work.title}" to Archives?`)) return
+    const updated: SiteContent = {
+      ...content,
+      works: content.works.filter((w: WorkEntry) => w.slug !== slug),
+      archives: [{ ...work, category: 'archives' }, ...content.archives],
+    }
+    setArchiving(true)
+    try {
+      await putContent(updated, sha, `admin: move ${work.title} to archives`)
+      router.replace('/admin/dashboard')
+    } catch (e) {
+      alert('Archive failed: ' + (e as Error).message)
+      setArchiving(false)
+    }
   }
 
   async function save() {
@@ -69,10 +88,13 @@ function WorkEditor() {
       <div className="flex items-center justify-between mb-8">
         <h1 className="font-sans uppercase tracking-[0.0625em] text-sm">Edit Work</h1>
         <div className="flex gap-2">
-          <button onClick={() => router.back()} disabled={saving} className="px-5 py-2 text-xs font-sans uppercase tracking-[0.0625em] border border-gray-300 hover:border-black disabled:opacity-50">
+          <button onClick={() => router.back()} disabled={saving || archiving} className="px-5 py-2 text-xs font-sans uppercase tracking-[0.0625em] border border-gray-300 hover:border-black disabled:opacity-50">
             Cancel
           </button>
-          <button onClick={save} disabled={saving} className="bg-black text-white px-5 py-2 text-xs font-sans uppercase tracking-[0.0625em] hover:bg-gray-800 disabled:opacity-50">
+          <button onClick={archive} disabled={saving || archiving} className="px-5 py-2 text-xs font-sans uppercase tracking-[0.0625em] border border-gray-300 hover:border-black disabled:opacity-50">
+            {archiving ? 'Archiving…' : 'Archive'}
+          </button>
+          <button onClick={save} disabled={saving || archiving} className="bg-black text-white px-5 py-2 text-xs font-sans uppercase tracking-[0.0625em] hover:bg-gray-800 disabled:opacity-50">
             {saving ? 'Saving…' : 'Save & Publish'}
           </button>
         </div>
