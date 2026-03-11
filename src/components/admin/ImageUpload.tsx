@@ -37,9 +37,12 @@ export default function ImageUpload({ currentSrc, slug, onUpload }: Props) {
       const path = await uploadImage(filename, base64.split(',')[1])
       onUpload(path)
       // Cache the data URL so it survives page reloads until Pages rebuilds
-      const dataUrl = base64
-      localStorage.setItem(cacheKey, dataUrl)
-      setFallback(dataUrl)
+      try {
+        localStorage.setItem(cacheKey, base64)
+        setFallback(base64)
+      } catch {
+        // localStorage quota exceeded — upload succeeded, fallback preview unavailable
+      }
     } catch (e) {
       setError('Upload failed: ' + (e as Error).message)
       setPreview(currentSrc)
@@ -88,7 +91,7 @@ export default function ImageUpload({ currentSrc, slug, onUpload }: Props) {
         disabled={uploading}
         className="text-xs font-sans uppercase tracking-[0.0625em] border border-gray-300 px-4 py-2 hover:border-black disabled:opacity-50"
       >
-        {uploading ? 'Uploading…' : 'Replace image'}
+        {uploading ? 'Uploading…' : preview ? 'Replace image' : 'Upload image'}
       </button>
       {error && <p className="text-red-600 text-xs font-sans">{error}</p>}
     </div>

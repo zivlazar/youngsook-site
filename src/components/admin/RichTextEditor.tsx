@@ -68,7 +68,7 @@ export default function RichTextEditor({ content, onChange, slug }: Props) {
       try {
         const path = await uploadImage(filename, base64.split(',')[1])
         // Cache data URL so it shows immediately before Pages rebuilds
-        localStorage.setItem(`img_cache_${path}`, base64)
+        try { localStorage.setItem(`img_cache_${path}`, base64) } catch { /* quota exceeded */ }
         editor.chain().focus().setImage({ src: path }).run()
       } catch (e) {
         alert('Image upload failed: ' + (e as Error).message)
