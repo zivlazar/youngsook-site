@@ -67,7 +67,7 @@ export default function RichTextEditor({ content, onChange, slug }: Props) {
     extensions: [
       StarterKit,
       Link.configure({ openOnClick: false }),
-      Image,
+      Image.configure({ allowBase64: true }),
       VideoEmbed,
       TextStyle,
       FontSize,
