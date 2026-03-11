@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { useEditor, EditorContent, NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react'
 import { Node, mergeAttributes } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
@@ -62,6 +62,8 @@ function toEmbedUrl(url: string): string | null {
 export default function RichTextEditor({ content, onChange, slug }: Props) {
   // Maps temporary data URLs → permanent /images/... paths for uploads this session
   const pendingImages = useRef<Map<string, string>>(new Map())
+  const [showLinkInput, setShowLinkInput] = useState(false)
+  const [linkUrl, setLinkUrl] = useState('')
 
   const editor = useEditor({
     extensions: [
@@ -110,14 +112,14 @@ export default function RichTextEditor({ content, onChange, slug }: Props) {
     input.click()
   }
 
-  function setLink() {
-    const url = window.prompt('URL:', (editor.getAttributes('link').href as string) || '')
-    if (url === null) return
-    if (url === '') {
+  function applyLink() {
+    if (linkUrl === '') {
       editor.chain().focus().unsetLink().run()
     } else {
-      editor.chain().focus().setLink({ href: url }).run()
+      editor.chain().focus().setLink({ href: linkUrl }).run()
     }
+    setShowLinkInput(false)
+    setLinkUrl('')
   }
 
   function insertVideo() {
@@ -140,19 +142,37 @@ export default function RichTextEditor({ content, onChange, slug }: Props) {
     </button>
   )
 
-  // Link opens window.prompt — use onClick so browser doesn't block the dialog
-  const linkBtn = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const e = editor as any
+
+  // Link button: onMouseDown+preventDefault keeps editor selection intact
+  const linkBtn = showLinkInput ? (
+    <span className="flex items-center gap-1">
+      <input
+        type="url"
+        value={linkUrl}
+        onChange={ev => setLinkUrl(ev.target.value)}
+        onKeyDown={ev => { if (ev.key === 'Enter') { ev.preventDefault(); applyLink() } if (ev.key === 'Escape') setShowLinkInput(false) }}
+        placeholder="https://..."
+        autoFocus
+        className="text-xs font-sans border border-gray-300 px-2 py-1 focus:outline-none focus:border-black w-44"
+      />
+      <button type="button" onMouseDown={ev => { ev.preventDefault(); applyLink() }} className="px-2 py-1 text-xs font-sans border border-gray-300 hover:border-black">Apply</button>
+      <button type="button" onMouseDown={ev => { ev.preventDefault(); setShowLinkInput(false) }} className="px-2 py-1 text-xs font-sans border border-gray-300 hover:border-black">✕</button>
+    </span>
+  ) : (
     <button
       type="button"
-      onClick={setLink}
+      onMouseDown={ev => {
+        ev.preventDefault()
+        setLinkUrl((editor.getAttributes('link').href as string) || '')
+        setShowLinkInput(true)
+      }}
       className={`px-2 py-1 text-xs font-sans border ${editor.isActive('link') ? 'bg-black text-white border-black' : 'border-gray-300 hover:border-black'}`}
     >
       Link
     </button>
   )
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const e = editor as any
 
   return (
     <div className="border border-gray-300 focus-within:border-black">
@@ -160,15 +180,10 @@ export default function RichTextEditor({ content, onChange, slug }: Props) {
         {btn('B', () => e.chain().focus().toggleBold().run(), e.isActive('bold'))}
         {btn('I', () => e.chain().focus().toggleItalic().run(), e.isActive('italic'))}
         <span className="border-l border-gray-200 mx-1" />
-        {btn('H2', () => e.chain().focus().toggleHeading({ level: 2 }).run(), e.isActive('heading', { level: 2 }))}
-        {btn('H3', () => e.chain().focus().toggleHeading({ level: 3 }).run(), e.isActive('heading', { level: 3 }))}
-        {btn('¶', () => e.chain().focus().setParagraph().run(), e.isActive('paragraph'))}
-        <span className="border-l border-gray-200 mx-1" />
         {btn('Large', () => e.chain().focus().setFontSize('1.4em').run())}
         {btn('XL', () => e.chain().focus().setFontSize('1.8em').run())}
         {btn('Normal', () => e.chain().focus().unsetFontSize().run())}
         <span className="border-l border-gray-200 mx-1" />
-        {btn('" "', () => e.chain().focus().toggleBlockquote().run(), e.isActive('blockquote'))}
         {linkBtn}
         {btn('Video', insertVideo)}
         {btn('Image', handleImageUpload)}
