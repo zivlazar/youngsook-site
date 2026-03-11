@@ -11,6 +11,7 @@ interface Props {
 
 export default function ImageUpload({ currentSrc, slug, onUpload }: Props) {
   const [preview, setPreview] = useState(currentSrc)
+  const [imgBroken, setImgBroken] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -20,6 +21,7 @@ export default function ImageUpload({ currentSrc, slug, onUpload }: Props) {
     if (!file) return
     setError('')
     setUploading(true)
+    setImgBroken(false)
 
     // Show local preview immediately
     const objectUrl = URL.createObjectURL(file)
@@ -44,8 +46,14 @@ export default function ImageUpload({ currentSrc, slug, onUpload }: Props) {
     <div className="space-y-3">
       {preview && (
         <div className="relative bg-gray-100 aspect-video w-full overflow-hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={preview} alt="" className="w-full h-full object-cover" />
+          {imgBroken ? (
+            <div className="absolute inset-0 flex items-center justify-center text-xs font-sans text-gray-400 text-center px-4">
+              Image will appear here in a few minutes after the site rebuilds
+            </div>
+          ) : (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img src={preview} alt="" className="w-full h-full object-cover" onError={() => setImgBroken(true)} />
+          )}
           {uploading && (
             <div className="absolute inset-0 bg-white/70 flex items-center justify-center text-xs font-sans">
               Uploading…
