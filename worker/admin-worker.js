@@ -155,7 +155,8 @@ async function handleGetContent(request, env, origin) {
   const payload = await requireAuth(request, env)
   if (!payload) return json({ error: 'Unauthorized' }, 401, origin)
   const file = await githubGet(CONTENT_PATH, env)
-  const content = JSON.parse(atob(file.content))
+  const bytes = Uint8Array.from(atob(file.content), c => c.charCodeAt(0))
+  const content = JSON.parse(new TextDecoder().decode(bytes))
   return json({ content, sha: file.sha }, 200, origin)
 }
 
