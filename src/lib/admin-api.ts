@@ -12,13 +12,28 @@ function authHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
-export async function login(email: string, password: string): Promise<string> {
-  const res = await fetch(`${WORKER_URL}/login`, {
+export async function requestOtp(email: string): Promise<void> {
+  const res = await fetch(`${WORKER_URL}/login/request-otp`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email }),
   })
-  if (!res.ok) throw new Error('Invalid credentials')
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error((body as { error?: string }).error || 'Failed to send code')
+  }
+}
+
+export async function verifyOtp(email: string, code: string): Promise<string> {
+  const res = await fetch(`${WORKER_URL}/login/verify-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, code }),
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error((body as { error?: string }).error || 'Verification failed')
+  }
   const { token } = await res.json()
   return token
 }
