@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import AdminLayout from '@/components/admin/AdminLayout'
-import { getContent, putContent } from '@/lib/admin-api'
+import { getContent, putContent, deleteImage } from '@/lib/admin-api'
 import type { SiteContent, WorkEntry } from '@/lib/admin-api'
 
 export default function Dashboard() {
@@ -33,6 +33,8 @@ export default function Dashboard() {
 
   async function deletePage(type: 'works' | 'archives', slug: string) {
     if (!content || !window.confirm(`Delete "${slug}"? This cannot be undone.`)) return
+    const entry = content[type].find((e: WorkEntry) => e.slug === slug)
+    const images = entry?.images ?? []
     const updated = {
       ...content,
       [type]: content[type].filter((e: WorkEntry) => e.slug !== slug),
@@ -41,6 +43,13 @@ export default function Dashboard() {
       const current = await getContent()
       await putContent(updated, current.sha, `admin: delete ${slug}`)
       setContent(updated)
+      // Delete all images associated with the entry
+      await Promise.allSettled(
+        images.map((img: { src: string }) => {
+          const filename = img.src.replace(/^\/images\//, '')
+          return deleteImage(filename)
+        })
+      )
       setPublished(true)
       setTimeout(() => setPublished(false), 5000)
     } catch (e) {
