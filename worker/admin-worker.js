@@ -1,11 +1,17 @@
 // worker/admin-worker.js
 // Secrets required (set via: wrangler secret put <NAME> --config wrangler-admin.toml):
-//   ADMIN_EMAIL      - admin login email
-//   ADMIN_PASSWORD   - admin login password (plain text, stored encrypted by Cloudflare)
+//   ADMIN_EMAIL      - admin email address (receives OTP codes)
+//   RESEND_API_KEY   - Resend API key for sending OTP emails
 //   GITHUB_TOKEN     - GitHub personal access token (repo scope)
 //   JWT_SECRET       - random 32+ char string for signing JWTs
 //   GITHUB_OWNER     - GitHub username/org (e.g. "zivlazar")
 //   GITHUB_REPO      - repo name (e.g. "youngsook-site")
+//
+// KV namespace binding required (set in wrangler-admin.toml):
+//   OTP_KV           - Cloudflare KV namespace for OTP + rate-limit entries
+//
+// Plain vars (set in wrangler-admin.toml [vars]):
+//   RESEND_FROM      - verified sender address (e.g. "noreply@youngsookchoi.com")
 
 const ALLOWED_ORIGINS = [
   'https://youngsookchoi.com',
@@ -133,19 +139,150 @@ async function githubDelete(path, sha, message, env) {
   return res.json()
 }
 
+// Resend email helper
+async function sendOtpEmail(to, code, env) {
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: env.RESEND_FROM,
+      to: [to],
+      subject: 'Your admin login code',
+      text: `Your login code is: ${code}\n\nThis code expires in 10 minutes. Do not share it.`,
+    }),
+  })
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Resend failed: ${res.status} ${err}`)
+  }
+}
+
 // Route handlers
-async function handleLogin(request, env, origin) {
-  let email, password
+async function handleRequestOtp(request, env, origin) {
+  let email
   try {
-    ;({ email, password } = await request.json())
+    ;({ email } = await request.json())
   } catch {
-    return json({ error: 'Invalid request body' }, 400, origin)
+    return json({ error: 'Invalid request' }, 400, origin)
   }
-  if (email !== env.ADMIN_EMAIL || password !== env.ADMIN_PASSWORD) {
-    return json({ error: 'Invalid credentials' }, 401, origin)
+
+  // Validate: email must be a non-empty string
+  if (typeof email !== 'string' || !email) {
+    return json({ error: 'Invalid request' }, 400, origin)
   }
+  const normalised = email.toLowerCase().trim()
+  if (!normalised) return json({ error: 'Invalid request' }, 400, origin)
+
+  // Rate limit: max 3 requests per 15-minute FIXED window.
+  // Use getWithMetadata so we can preserve the original window's TTL on each increment.
+  const rateLimitKey = `otp_rate:${normalised}`
+  const { value: rateCountStr, metadata: rateMeta } =
+    await env.OTP_KV.getWithMetadata(rateLimitKey, 'text')
+  const rateCount = rateCountStr ? parseInt(rateCountStr, 10) : 0
+  if (rateCount >= 3) {
+    return json({ error: 'Too many requests' }, 429, origin)
+  }
+
+  // Silent no-op for unrecognised email — prevents probing
+  if (normalised !== env.ADMIN_EMAIL.toLowerCase()) {
+    return json({ ok: true }, 200, origin)
+  }
+
+  // Generate cryptographically random 6-digit code
+  const digits = new Uint32Array(1)
+  crypto.getRandomValues(digits)
+  const code = String(digits[0] % 1_000_000).padStart(6, '0')
+
+  // Send email BEFORE writing KV — do not increment counter if send fails
+  try {
+    await sendOtpEmail(normalised, code, env)
+  } catch {
+    return json({ error: 'Failed to send email' }, 502, origin)
+  }
+
+  // Store OTP in KV with explicit expiration in metadata (needed for TTL preservation on verify)
+  const otpExpiration = Math.floor(Date.now() / 1000) + 600
+  await env.OTP_KV.put(
+    `otp:${normalised}`,
+    JSON.stringify({ code, attempts: 0 }),
+    { expirationTtl: 600, metadata: { expiration: otpExpiration } }
+  )
+
+  // Increment rate limit counter only after successful send.
+  // Fixed window: set TTL only on first creation; preserve the original window on increments.
+  if (rateCount === 0) {
+    const rateExpiration = Math.floor(Date.now() / 1000) + 900
+    await env.OTP_KV.put(rateLimitKey, '1', {
+      expirationTtl: 900,
+      metadata: { expiration: rateExpiration },
+    })
+  } else {
+    const rateRemainingTtl = Math.max(1, Math.floor(rateMeta.expiration - Date.now() / 1000))
+    await env.OTP_KV.put(rateLimitKey, String(rateCount + 1), {
+      expirationTtl: rateRemainingTtl,
+      metadata: rateMeta,
+    })
+  }
+
+  return json({ ok: true }, 200, origin)
+}
+
+async function handleVerifyOtp(request, env, origin) {
+  let email, code
+  try {
+    ;({ email, code } = await request.json())
+  } catch {
+    return json({ error: 'Invalid request' }, 400, origin)
+  }
+
+  // Validate types before any processing
+  if (typeof email !== 'string' || typeof code !== 'string') {
+    return json({ error: 'Invalid request' }, 400, origin)
+  }
+  const normalised = email.toLowerCase().trim()
+  // Validate: email present, code is exactly 6 digits
+  if (!normalised || !/^\d{6}$/.test(code)) {
+    return json({ error: 'Invalid request' }, 400, origin)
+  }
+
+  // Defence-in-depth: confirm email is the admin email before touching KV
+  if (normalised !== env.ADMIN_EMAIL.toLowerCase()) {
+    return json({ error: 'Unauthorized' }, 401, origin)
+  }
+
+  const { value, metadata } = await env.OTP_KV.getWithMetadata(`otp:${normalised}`, 'json')
+
+  if (!value) {
+    return json({ error: 'Code expired or not found' }, 404, origin)
+  }
+
+  const { code: storedCode, attempts } = value
+
+  // Attempt boundary: attempts 0–4 reach code comparison (5 chances).
+  // On the 6th call (attempts === 5), the gate fires.
+  if (attempts >= 5) {
+    await env.OTP_KV.delete(`otp:${normalised}`)
+    return json({ error: 'Too many attempts, request a new code' }, 429, origin)
+  }
+
+  if (code !== storedCode) {
+    // Preserve original expiry window — do not reset the 10-minute clock
+    const remainingTtl = Math.max(1, Math.floor(metadata.expiration - Date.now() / 1000))
+    await env.OTP_KV.put(
+      `otp:${normalised}`,
+      JSON.stringify({ code: storedCode, attempts: attempts + 1 }),
+      { expirationTtl: remainingTtl, metadata }
+    )
+    return json({ error: 'Invalid code' }, 401, origin)
+  }
+
+  // Code correct — delete entry and issue JWT
+  await env.OTP_KV.delete(`otp:${normalised}`)
   const token = await signJWT(
-    { sub: email, iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 86400 },
+    { sub: normalised, iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 86400 },
     env.JWT_SECRET
   )
   return json({ token }, 200, origin)
@@ -249,7 +386,8 @@ const worker = {
     const path = url.pathname
 
     try {
-      if (path === '/login' && request.method === 'POST') return handleLogin(request, env, origin)
+      if (path === '/login/request-otp' && request.method === 'POST') return handleRequestOtp(request, env, origin)
+      if (path === '/login/verify-otp' && request.method === 'POST') return handleVerifyOtp(request, env, origin)
       if (path === '/content' && request.method === 'GET') return handleGetContent(request, env, origin)
       if (path === '/content' && request.method === 'PUT') return handlePutContent(request, env, origin)
       if (path === '/images' && request.method === 'POST') return handleUploadImage(request, env, origin)
