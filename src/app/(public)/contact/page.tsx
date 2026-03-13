@@ -1,7 +1,17 @@
 import { contact } from '@/lib/data'
 
 export const metadata = {
-  title: 'Contact – Youngsook Choi',
+  title: 'Contact',
+  description: 'Collaborate with Youngsook Choi — open to interdisciplinary commissions, research partnerships, and long-term socially engaged art projects. Interested in ecological grief, decolonising epistemologies, and new technological methods.',
+  openGraph: {
+    title: 'Contact – Youngsook Choi',
+    description: 'Collaborate with Youngsook Choi — open to interdisciplinary commissions, research partnerships, and long-term socially engaged art projects.',
+    url: 'https://youngsookchoi.com/contact',
+  },
+  twitter: {
+    title: 'Contact – Youngsook Choi',
+    description: 'Collaborate with Youngsook Choi — open to interdisciplinary commissions, research partnerships, and long-term socially engaged art projects.',
+  },
 }
 
 export default function Contact() {

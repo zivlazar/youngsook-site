@@ -7,10 +7,31 @@ export function generateStaticParams() {
   return works.map((w) => ({ slug: w.slug }))
 }
 
+function toDescription(html: string): string {
+  return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160)
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const work = works.find((w) => w.slug === slug)
-  return { title: work ? `${work.title} – Youngsook Choi` : 'Not Found' }
+  if (!work) return { title: 'Not Found' }
+  const description = toDescription(work.content.find(Boolean) ?? '')
+  const image = work.images[0]?.src
+  return {
+    title: work.title,
+    description,
+    openGraph: {
+      title: `${work.title} – Youngsook Choi`,
+      description,
+      url: `https://youngsookchoi.com/works/${slug}`,
+      ...(image ? { images: [{ url: image, alt: work.title }] } : {}),
+    },
+    twitter: {
+      title: `${work.title} – Youngsook Choi`,
+      description,
+      ...(image ? { images: [image] } : {}),
+    },
+  }
 }
 
 export default async function WorkDetail({ params }: { params: Promise<{ slug: string }> }) {

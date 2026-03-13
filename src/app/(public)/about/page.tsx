@@ -1,7 +1,17 @@
 import { introduction } from '@/lib/data'
 
 export const metadata = {
-  title: 'Introduction – Youngsook Choi',
+  title: 'Introduction',
+  description: 'Youngsook Choi holds a PhD in human geography intersecting feminist and queer theories. Her practice expands on relationships with places, ecosystems, and interspecies communities — exploring collective grief and political spirituality.',
+  openGraph: {
+    title: 'Introduction – Youngsook Choi',
+    description: 'Youngsook Choi holds a PhD in human geography intersecting feminist and queer theories. Her practice expands on relationships with places, ecosystems, and interspecies communities — exploring collective grief and political spirituality.',
+    url: 'https://youngsookchoi.com/about',
+  },
+  twitter: {
+    title: 'Introduction – Youngsook Choi',
+    description: 'Youngsook Choi holds a PhD in human geography intersecting feminist and queer theories. Her practice expands on relationships with places, ecosystems, and interspecies communities — exploring collective grief and political spirituality.',
+  },
 }
 
 export default function About() {

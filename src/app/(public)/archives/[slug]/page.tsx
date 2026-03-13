@@ -7,10 +7,31 @@ export function generateStaticParams() {
   return archives.map((a) => ({ slug: a.slug }))
 }
 
+function toDescription(html: string): string {
+  return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160)
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const item = archives.find((a) => a.slug === slug)
-  return { title: item ? `${item.title} – Youngsook Choi` : 'Not Found' }
+  if (!item) return { title: 'Not Found' }
+  const description = toDescription(item.content.find(Boolean) ?? '')
+  const image = item.images[0]?.src
+  return {
+    title: item.title,
+    description,
+    openGraph: {
+      title: `${item.title} – Youngsook Choi`,
+      description,
+      url: `https://youngsookchoi.com/archives/${slug}`,
+      ...(image ? { images: [{ url: image, alt: item.title }] } : {}),
+    },
+    twitter: {
+      title: `${item.title} – Youngsook Choi`,
+      description,
+      ...(image ? { images: [image] } : {}),
+    },
+  }
 }
 
 export default async function ArchiveDetail({ params }: { params: Promise<{ slug: string }> }) {

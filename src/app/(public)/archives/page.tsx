@@ -3,7 +3,17 @@ import Image from 'next/image'
 import { archives } from '@/lib/data'
 
 export const metadata = {
-  title: 'Archives – Youngsook Choi',
+  title: 'Archives',
+  description: 'Archived works by Youngsook Choi — a body of socially engaged practice spanning ecological grief, decolonisation, queer geography, and collective healing.',
+  openGraph: {
+    title: 'Archives – Youngsook Choi',
+    description: 'Archived works by Youngsook Choi — a body of socially engaged practice spanning ecological grief, decolonisation, queer geography, and collective healing.',
+    url: 'https://youngsookchoi.com/archives',
+  },
+  twitter: {
+    title: 'Archives – Youngsook Choi',
+    description: 'Archived works by Youngsook Choi — a body of socially engaged practice spanning ecological grief, decolonisation, queer geography, and collective healing.',
+  },
 }
 
 export default function Archives() {

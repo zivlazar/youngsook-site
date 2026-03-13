@@ -3,7 +3,17 @@ import Image from 'next/image'
 import { works } from '@/lib/data'
 
 export const metadata = {
-  title: 'Recent Works – Youngsook Choi',
+  title: 'Recent Works',
+  description: 'Recent works by Youngsook Choi — socially engaged art exploring collective grief, ecological loss, decolonisation, and solidarity, presented internationally at major institutions.',
+  openGraph: {
+    title: 'Recent Works – Youngsook Choi',
+    description: 'Recent works by Youngsook Choi — socially engaged art exploring collective grief, ecological loss, decolonisation, and solidarity, presented internationally at major institutions.',
+    url: 'https://youngsookchoi.com/works',
+  },
+  twitter: {
+    title: 'Recent Works – Youngsook Choi',
+    description: 'Recent works by Youngsook Choi — socially engaged art exploring collective grief, ecological loss, decolonisation, and solidarity, presented internationally at major institutions.',
+  },
 }
 
 export default function Works() {
