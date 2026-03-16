@@ -38,7 +38,10 @@ src/
     Footer.tsx
   lib/
     data.ts             # All site content — single source of truth
-worker/                 # (none — no contact worker needed)
+worker/
+  admin-worker.js       # Cloudflare Worker: OTP login + content/image API
+  wrangler-admin.toml   # Worker config (deploy with: npx wrangler deploy --config wrangler-admin.toml)
+  .dev.vars             # Local dev secrets (gitignored)
 public/
   images/               # All downloaded images (slug-prefixed filenames)
   _headers              # Cloudflare Pages security headers
@@ -62,6 +65,21 @@ public/
 - Slide-in sidebar navigation from the right
 - Footer: `© 2022 Youngsook Choi. All rights reserved.`
 - Home page: full-viewport hero image, no text
+
+## Admin Panel
+
+- URL: `youngsookchoi.com/admin`
+- Login: passwordless OTP — enter `selfmadecities@gmail.com`, receive 6-digit code via email, enter it to log in
+- Backed by Cloudflare Worker at `youngsook-admin-worker.zivlazar.workers.dev`
+- Worker handles: OTP request/verify, content read/write (via GitHub API), image upload/delete
+- JWT issued on successful verify, stored in `localStorage`, expires after 24h
+- OTP delivered via [Resend](https://resend.com) from `onboarding@resend.dev`
+- Worker secrets (set via `npx wrangler secret put <NAME> --config wrangler-admin.toml`):
+  - `ADMIN_EMAIL` — `selfmadecities@gmail.com`
+  - `RESEND_API_KEY` — from resend.com/api-keys
+  - `JWT_SECRET`, `GITHUB_TOKEN`, `GITHUB_OWNER`, `GITHUB_REPO`
+- KV namespace `OTP_KV` bound in `wrangler-admin.toml` — stores OTP codes with TTL + rate limits
+- Content stored in `src/lib/content.json` (written to GitHub via worker, triggers Cloudflare Pages rebuild)
 
 ## Gotchas
 
